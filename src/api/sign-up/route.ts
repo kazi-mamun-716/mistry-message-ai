@@ -17,13 +17,27 @@ export async function POST(request: Request) {
           success: false,
           message: "Username is already taken",
         },
-        { status: 400 }
+        { status: 500 }
       );
     }
     const existingUserByEmail = await UserModel.findOne({ email });
     const verifyCode = Math.floor(100000 + Math.random() * 90000).toString();
     if (existingUserByEmail) {
-      true;
+      if(existingUserByEmail.isVerified){
+        return Response.json(
+          {
+            success: false,
+            message: "User Already Exists With This Email!",
+          },
+          { status: 400 }
+        );
+      }else{
+        const hashed = await bcrypt.hash(password, 10);
+        existingUserByEmail.password = hashed;
+        existingUserByEmail.verifyCode = verifyCode;
+        existingUserByEmail.verifyCodeExpiry = new Date(Date.now()+3600000)
+        await existingUserByEmail.save();
+      }
     } else {
       const hashed = await bcrypt.hash(password, 10);
       const expiryDate = new Date();
